@@ -1,0 +1,2 @@
+export const ANALYSIS_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+export const ANALYSIS_RATE_LIMIT_MAX = 5;
