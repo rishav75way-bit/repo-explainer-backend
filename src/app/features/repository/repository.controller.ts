@@ -35,6 +35,22 @@ export async function getRepository(req: Request, res: Response): Promise<void> 
   }
 }
 
+export async function toggleFavorite(req: Request, res: Response): Promise<void> {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, "Unauthorized", HTTP_STATUS.UNAUTHORIZED);
+    return;
+  }
+  try {
+    const { id } = req.params;
+    const repo = await repositoryService.toggleFavorite(id, userId);
+    sendSuccess(res, repo);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Failed to update favorite";
+    sendError(res, msg, HTTP_STATUS.NOT_FOUND);
+  }
+}
+
 export async function listRepositories(req: Request, res: Response): Promise<void> {
   const userId = req.userId;
   if (!userId) {

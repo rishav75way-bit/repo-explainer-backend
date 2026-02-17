@@ -18,5 +18,10 @@ router.get(
   validate(getRepositoryParamsSchema, "params"),
   repositoryController.getRepository
 );
+router.patch(
+  "/:id/favorite",
+  validate(getRepositoryParamsSchema, "params"),
+  repositoryController.toggleFavorite
+);
 
 export const repositoryRoutes = router;

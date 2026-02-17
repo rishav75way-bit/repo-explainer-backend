@@ -9,6 +9,24 @@ import {
   fetchRepoContents,
 } from "../repository/repository.service.js";
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  hi: "Hindi",
+  hry: "Haryanvi",
+  bho: "Bhojpuri",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  pt: "Portuguese",
+  ja: "Japanese",
+};
+
+function getLanguageInstruction(code: string | undefined): string {
+  if (!code || code === "en") return "";
+  const name = LANGUAGE_NAMES[code] ?? code;
+  return `\n\nIMPORTANT: Write the ENTIRE response (all JSON string values) in ${name}. Use proper grammar and terminology for ${name}.`;
+}
+
 const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
 
 const AI_OUTPUT_SCHEMA = `{
@@ -47,7 +65,11 @@ function extractJsonFromText(text: string): string {
   return trimmed.slice(jsonStart, jsonEnd + 1);
 }
 
-export async function runAnalysis(repositoryId: string, userId: string) {
+export async function runAnalysis(
+  repositoryId: string,
+  userId: string,
+  options?: { language?: string }
+) {
   const repository = await Repository.findOne({ _id: repositoryId, userId });
   if (!repository) {
     throw new Error("Repository not found");
@@ -63,6 +85,7 @@ export async function runAnalysis(repositoryId: string, userId: string) {
   const languagesList = Object.keys(languages).join(", ");
   const repoStats = `Languages: ${languagesList}\nTotal files in tree: ${tree.length}`;
 
+  const langInstruction = getLanguageInstruction(options?.language);
   const prompt = `Analyze this GitHub repository and return ONLY valid JSON matching this schema. No markdown, no extra text.
 Schema: ${AI_OUTPUT_SCHEMA}
 
@@ -78,7 +101,7 @@ ${repoStats}
 package.json content:
 ${packageJsonContent ?? "Not found or not applicable"}
 
-Generate structured analysis. Return ONLY the JSON object.`;
+Generate structured analysis. Return ONLY the JSON object.${langInstruction}`;
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -196,6 +219,38 @@ export async function getAnalysisByShareToken(shareToken: string) {
     throw new Error("Analysis not found or not public");
   }
   return analysis;
+}
+
+export async function askQuestion(analysisId: string, userId: string, question: string) {
+  const analysis = await Analysis.findById(analysisId);
+  if (!analysis) {
+    throw new Error("Analysis not found");
+  }
+
+  const repo = await Repository.findById(analysis.repositoryId);
+  if (!repo || repo.userId.toString() !== userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const context = Object.entries(analysis.structuredResult)
+    .map(([k, v]) => `## ${k}\n${v}`)
+    .join("\n\n");
+
+  const prompt = `You are an expert technical analyst. Answer the following question based on the repository analysis below. Be concise and accurate. If the analysis does not contain enough information, say so.
+
+Repository Analysis:
+${context}
+
+Question: ${question}
+
+Answer:`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
+
+  return response.text?.trim() ?? "Unable to generate an answer.";
 }
 
 export async function revokeShareToken(analysisId: string, userId: string) {

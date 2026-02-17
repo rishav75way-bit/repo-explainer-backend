@@ -20,6 +20,10 @@ export const repositorySchema = new Schema(
       type: Date,
       default: null,
     },
+    isFavorite: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

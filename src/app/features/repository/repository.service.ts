@@ -71,7 +71,14 @@ export async function createRepository(
 
   if (existing) {
     return {
-      repository: existing,
+      repository: {
+        _id: existing._id,
+        userId: existing.userId,
+        repoUrl: existing.repoUrl,
+        repoName: existing.repoName,
+        analyzedAt: existing.analyzedAt,
+        isFavorite: existing.isFavorite ?? false,
+      },
       metadata: {
         fileTree: tree.slice(0, 200),
         languages: Object.keys(languages),
@@ -94,6 +101,7 @@ export async function createRepository(
       repoUrl: repository.repoUrl,
       repoName: repository.repoName,
       analyzedAt: repository.analyzedAt,
+      isFavorite: repository.isFavorite ?? false,
     },
     metadata: {
       fileTree: tree.slice(0, 200),
@@ -119,4 +127,14 @@ export async function listUserRepositories(userId: string) {
     .sort({ createdAt: -1 })
     .lean();
   return repos;
+}
+
+export async function toggleFavorite(repositoryId: string, userId: string) {
+  const repo = await Repository.findOne({ _id: repositoryId, userId });
+  if (!repo) {
+    throw new Error("Repository not found");
+  }
+  const isFavorite = !repo.isFavorite;
+  await Repository.updateOne({ _id: repositoryId, userId }, { $set: { isFavorite } });
+  return { ...repo.toObject(), isFavorite };
 }
