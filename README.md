@@ -38,21 +38,6 @@ RESTful API backend for analyzing GitHub repositories and generating AI-powered 
 ```bash
 npm install
 ```
-
-## Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-NODE_ENV=development
-PORT=5000
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/dbname
-JWT_SECRET=your-32-character-secret-key-here-minimum
-JWT_REFRESH_SECRET=your-32-character-refresh-secret-key-here-minimum
-GITHUB_TOKEN=ghp_your_github_personal_access_token
-GEMINI_API_KEY=your-google-gemini-api-key
-```
-
 ### Getting API Keys
 
 **GitHub Token:**
